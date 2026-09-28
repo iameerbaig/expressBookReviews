@@ -1,6 +1,8 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 let books = require("./booksdb.js");
+const { JWT_SECRET } = require('./config.js');
 const regd_users = express.Router();
 
 let users = [];
@@ -12,8 +14,8 @@ const isValid = (username)=>{ //returns boolean
 }
 
 const authenticatedUser = (username,password)=>{ //returns boolean
-  let validusers = users.filter((user)=>{return user.username === username && user.password === password;});
-  return validusers.length > 0;
+  let matchinguser = users.find((user)=>{return user.username === username;});
+  return matchinguser ? bcrypt.compareSync(password, matchinguser.password) : false;
 }
 
 //only registered users can login
@@ -31,7 +33,7 @@ regd_users.post("/login", (req,res) => {
 
   let accessToken = jwt.sign({
     data: username
-  }, 'access', { expiresIn: 60 * 60 });
+  }, JWT_SECRET, { expiresIn: 60 * 60 });
 
   req.session.authorization = {
     accessToken, username
@@ -43,7 +45,7 @@ regd_users.post("/login", (req,res) => {
 regd_users.put("/auth/review/:isbn", (req, res) => {
   const isbn = req.params.isbn;
   const review = req.query.review;
-  const username = req.session.authorization ? req.session.authorization.username : undefined;
+  const username = req.user ? req.user.data : undefined;
 
   if (!username) {
     return res.status(401).json({message: "User not logged in"});
@@ -64,7 +66,7 @@ regd_users.put("/auth/review/:isbn", (req, res) => {
 // Delete a book review
 regd_users.delete("/auth/review/:isbn", (req, res) => {
   const isbn = req.params.isbn;
-  const username = req.session.authorization ? req.session.authorization.username : undefined;
+  const username = req.user ? req.user.data : undefined;
 
   if (!username) {
     return res.status(401).json({message: "User not logged in"});

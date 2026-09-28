@@ -1,5 +1,6 @@
 const express = require('express');
 const axios = require('axios');
+const bcrypt = require('bcryptjs');
 let books = require("./booksdb.js");
 let isValid = require("./auth_users.js").isValid;
 let users = require("./auth_users.js").users;
@@ -18,7 +19,7 @@ public_users.post("/register", (req,res) => {
     return res.status(404).json({message: "User already exists!"});
   }
 
-  users.push({username, password});
+  users.push({username, password: bcrypt.hashSync(password, 10)});
   return res.status(200).json({message: "User successfully registered. Now you can login"});
 });
 
